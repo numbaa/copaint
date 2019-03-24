@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <!-- 用于唯一标识我们的项目，分别是：项目所属机构(一般用倒过来的网址，这里用'屁股油油的'简拼)、项目名称、项目版本号 -->
+    <groupId>pgyyd</groupId>
+    <artifactId>copaint</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <!-- 声明几个变量，头两个是maven用的，告诉它用哪个版本的java；后一个是我自定义的变量，为了方便统一修改vert.x版本 -->
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <VERTX_VERSION>3.6.3</VERTX_VERSION>
+    </properties>
+
+    <!-- 添加依赖 -->
+    <dependencies>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${VERTX_VERSION}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>${VERTX_VERSION}</version>
+        </dependency>
+    </dependencies>
+
+
+    <!-- 下面这么大一堆，其实就为了两件事
+            1. 利用maven-shade-plugin这个插件将我们的代码、以及它的依赖，全都编译打包进最终的.jar文件
+            2. 指明我们的main函数在哪里，不然运行jar文件的时候会报找不到main
+         固定套路，无脑复制粘贴ojbk
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>cn.pgyyd.copaint.Main</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>

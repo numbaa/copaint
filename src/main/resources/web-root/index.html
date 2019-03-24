@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>你画我猜</title>
+        <style type="text/css">
+            body {
+                background-color: rgb(241, 231, 231);
+            }
+            #super_canvas {
+                border: 1px solid red;
+                margin: 0 auto;
+                display: block;
+                background-color: white;
+            }
+            #clear {
+                display: block;
+                margin: 10px auto;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="super_canvas" width="800px" height="600px"></canvas>
+        <button id="clear">清除</button>
+    </body>
+
+    <script>
+        var ws = new WebSocket("ws://127.0.0.1:8080");
+        ws.binaryType = "arraybuffer";
+        ws.onopen = function(e) {
+            console.log("websocket connected");
+            wsResetCanvas = function() {
+                ws.send("reset");
+            };
+            wsSentDraw = function(arrayBuffer) {
+                if (arrayBuffer instanceof Int32Array) {
+                    ws.send(arrayBuffer.buffer)
+                    console.log("send", arrayBuffer);
+                } else {
+                    console.log("send arrayBuffer type error");
+                }
+            }
+            clearCanvas = function() {
+                canvas.height = canvas.height;
+            }
+
+            var canvas = document.getElementById('super_canvas');
+            
+            var cvs = canvas.getContext('2d');
+            var penWeight = 2;
+            var penColor = '#000';
+
+            cancelListening = function() {
+                cvs.closePath();
+                canvas.onmousemove = null;
+                canvas.onmouseup = null
+                onmouseout = null
+            }
+            canvas.onmousedown = function(e) {
+                var start_x = e.clientX - canvas.offsetLeft + document.body.scrollLeft;
+                var start_y = e.clientY - canvas.offsetTop + document.body.scrollTop;
+
+                cvs.beginPath();
+                cvs.moveTo(start_x, start_y);
+                cvs.lineCap = 'round';
+                cvs.lineJoin = 'round';
+                cvs.strokeStyle = penColor;
+                cvs.lineWidth = penWeight;
+                var last_x = start_x;
+                var last_y = start_y;
+
+                canvas.onmousemove = function(e) {
+                    var move_x = e.clientX - canvas.offsetLeft + document.body.scrollLeft;
+                    var move_y = e.clientY - canvas.offsetTop + document.body.scrollTop;
+                    cvs.lineTo(move_x, move_y);
+                    cvs.stroke();
+                    //TODO: 发送笔的属性
+                    // wsSentDraw({
+                    //     "start_x":start_x,
+                    //     "start_y":start_y,
+                    //     "move_x": move_x,
+                    //     "move_y": move_y
+                    //     });
+                    var data = new Int32Array(4);
+                    data[0] = last_x;
+                    data[1] = last_y;
+                    data[2] = move_x;
+                    data[3] = move_y;
+                    wsSentDraw(data);
+                    last_x = move_x;
+                    last_y = move_y;
+                }
+                canvas.onmouseup = function(e) {
+                    cancelListening();
+                }
+                canvas.onmouseout = function(e) {
+                    cancelListening();
+                }
+            }
+            drawLine = function (array) {
+                //数据竞争？
+                console.log(array[0],array[1],array[2],array[3]);
+                cvs.beginPath();
+                cvs.moveTo(array[0], array[1]);
+                cvs.lineTo(array[2], array[3]);
+                cvs.stroke();
+            };
+            
+
+            ws.onclose = function(e) {
+            console.log("websocket close");
+            }
+
+            ws.onmessage = function(e) {
+                var data = e.data;
+                console.log("websocket recv message:", data);
+                if (data == "reset") {
+                    console.log("in reset");
+                    clearCanvas()
+                } else if (data instanceof ArrayBuffer) {
+                    console.log("in draw");
+                    var int32Buffer = new Int32Array(data);
+                    drawLine(int32Buffer);
+                }
+            }
+
+            var clr_btn = document.getElementById('clear');
+            clr_btn.onclick = function(e) {
+                clearCanvas();
+                wsResetCanvas();
+            }
+        }
+
+    </script>
+    <!--
+    <script>
+        var ws = new WebSocket("ws://127.0.0.1:8080");
+        ws.onopen = function(e) {
+            console.log("websocket connected");
+            wsResetCanvas = function() {
+                ws.send("reset");
+            };
+            wsSentDraw = function(arrayBuffer) {
+                if (arrayBuffer instanceof Int32Array) {
+                    ws.send(arrayBuffer)
+                }
+                console.log("send arrayBuffer type error");
+            }
+        }
+        ws.onclose = function(e) {
+            console.log("websocket close");
+        }
+        ws.onmessage = function(e) {
+            console.log("websocket recv message");
+            var data = e.data;
+            if (typeof data === String && data === "reset") {
+                initCanvas();
+            } else if (data instanceof Int32Array) {
+                drawLine(data);
+            }
+        }
+    </script>
+    
+    <script>
+        var clr_btn = document.getElementById('clear');
+        clr_btn.onclick = function(e) {
+            initCanvas();
+        }
+        initCanvas();
+    </script>
+    -->
+</html>
